@@ -87,17 +87,18 @@ github_project = 'streamlink/streamlink'
 
 # -- Options for HTML output ---------------------------------------------------
 
-sys.path.append(os.path.abspath('_themes'))
+#sys.path.append(os.path.abspath('_themes'))
 
-html_theme_path = ['_themes']
-html_theme = 'sphinx_rtd_theme_violet'
+#html_theme_path = ['_themes']
+#html_theme = 'sphinx_rtd_theme_violet'
+html_theme = 'sphinx_rtd_theme'
 html_theme_options = {
-    "oneliner": (
-        "Command-line utility that extracts streams from various services "
-        "and pipes them into a video player of choice."
-    ),
-    "github_user": "streamlink",
-    "github_repo": "streamlink",
+#    "oneliner": (
+#        "Command-line utility that extracts streams from various services "
+#        "and pipes them into a video player of choice."
+#    ),
+#    "github_user": "streamlink",
+#    "github_repo": "streamlink",
     "sticky_navigation": True
 }
 
