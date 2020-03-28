@@ -1,24 +1,17 @@
 language: python
+
 env:
   global:
-  - STREAMLINK_DIST_DIR=${TRAVIS_BUILD_DIR}/dist
-  - STREAMLINK_INSTALLER_DIST_DIR=${STREAMLINK_DIST_DIR}/nsis
-  - SDIST_KEY_FILE="${TRAVIS_BUILD_DIR}/signing.key"
+    # Doctr deploy key for amurzeau/streamlink-docs
+    - secure: "OSElq67DOEQ/oI7jgqhxFZhbmhGfmT3RSTQwlAz4MwGBzBznT6H5GFnne7O4XUiGrQu1hC6xLNtYkOzMwSauDqypZCbay7rF4x1yTtYbx0ev2MxKjpiMnphbnJJPMA3l1Der0+Er9zgN/BnVgVMe78P/VNUCdFKiDqPdnsCjtl9mBb/Nj/VpPrvk+1HXLG1ZasV7WVaTlHgQtpwjGiDdpsQNW8icYBbVitOMjtByDKvIVJwXpJorI/TNOW1kfMDldhca9MqLTPR88E+SgN3huoVym8nA8nzC0iBDyD5V1oGZ+sxFHn1nvawwYPr5CSGKk8Us2oktGGzDSsMYaPHHxbeVNikgs+Zn0AJfVq/XTEpKJ4yNMEvUZcF32OdSFb9Ap5AN65QKXV2GFWy23zmSwQdvuI6VfTaN1TscN0TXMvpO/sSEbr62wwT/ZuTGVMN3jhtcYyN5J6plt9zDcmGGHq9uQKNEcYTrLLFD1NVeE9zow1gdVJsWnp/KVsZwru8+ma+7jin0E730BSz++uxbbKOMqA/ZBQ7Z3mc+Z+zjQ8ITl84KXYXfuOQQMg/Jm6YgEXeiWkeIoNN5YFKdw5Lq/yq85ZdBUwFin8itC2PzDeutuj3SGPiv7v6p/OPdeKyO40mkKVo+ZYfDluYW5kK3AEyCMZcniZbmhgvsZee6VUU="
 
 git:
   depth: 300
 
 matrix:
   include:
-  - python: '2.7'
   - python: '3.5'
-    env: BUILD_DOCS=yes BUILD_INSTALLER=yes BUILD_SDIST=yes DEPLOY_PYPI=yes
-  - python: '3.6'
-  - python: '3.7'
-  - python: '3.8'
-  - python: 'nightly'
-  allow_failures:
-  - python: 'nightly'
+    env: BUILD_DOCS=yes
 
 before_install:
   - pip install --disable-pip-version-check --upgrade pip setuptools
@@ -28,9 +21,6 @@ before_install:
       pip install -r docs-requirements.txt;
       pip install doctr;
     fi
-  - if [[ $BUILD_INSTALLER == 'yes' ]]; then
-      pip install pynsist==2.4;
-    fi
 
 install:
   - pip install -e .
@@ -39,73 +29,12 @@ script:
   - pytest --cov
   - flake8 --statistics --count
   - if [[ $BUILD_DOCS == 'yes' ]]; then make --directory=docs html; fi
-  - if [[ $BUILD_INSTALLER == 'yes' ]]; then ./script/makeinstaller.sh; fi
 
 after_success:
   - set -e
   # latest version - push docs for master
-  - if [[ $TRAVIS_PULL_REQUEST == 'false' && $BUILD_DOCS == 'yes' && $TRAVIS_REPO_SLUG == 'streamlink/streamlink' ]]; then doctr deploy latest; fi
-  # stable version - push docs for tags
-  - if [[ $TRAVIS_PULL_REQUEST == 'false' && $BUILD_DOCS == 'yes' && $TRAVIS_REPO_SLUG == 'streamlink/streamlink' && -n "$TRAVIS_TAG" ]]; then doctr deploy .; fi
-  - codecov
-
-addons:
-  apt:
-    packages:
-    - nsis
-    - imagemagick
-    - inkscape
-
-before_deploy:
-  - ./script/bintrayconfig.sh
-
-deploy:
-  - provider: releases
-    api_key: "${RELEASES_API_KEY}"
-    file: "${STREAMLINK_INSTALLER_DIST_DIR}/streamlink-${TRAVIS_TAG}.exe"
-    skip_cleanup: true
-    on:
-      tags: true
-      condition: $BUILD_INSTALLER = yes
-      repo: streamlink/streamlink
-  - provider: script
-    script: python script/github_releases.py
-    skip_cleanup: true
-    on:
-      tags: true
-      condition: $BUILD_INSTALLER == yes
-      repo: streamlink/streamlink
-  - provider: bintray
-    file: build/bintray-nightly.json
-    user: "${BINTRAY_USER}"
-    key: "${BINTRAY_KEY}"
-    skip_cleanup: true
-    on:
-      branch: master
-      condition: $BUILD_INSTALLER == yes && $TRAVIS_EVENT_TYPE == cron
-      repo: streamlink/streamlink
-  - provider: script
-    script: ./script/sdistsign.sh
-    skip_cleanup: true
-    on:
-      tags: true
-      condition: $BUILD_SDIST == yes
-      repo: streamlink/streamlink
-  - provider: releases
-    api_key: "${RELEASES_API_KEY}"
-    file: "${STREAMLINK_DIST_DIR}/streamlink-${TRAVIS_TAG}.tar.gz{,.asc}"
-    file_glob: true
-    skip_cleanup: true
-    on:
-      tags: true
-      condition: $BUILD_SDIST = yes
-      repo: streamlink/streamlink
-
-after_deploy:
-  - if [[ "$BUILD_INSTALLER" == 'yes' && "$TRAVIS_EVENT_TYPE" == 'cron' ]]; then ./script/bintrayupdate.sh; fi
+  - TRAVIS_REPO_SLUG="amurzeau/streamlink-debian" doctr deploy --deploy-repo amurzeau/streamlink-docs --no-require-master .
 
 doctr:
-  build-tags: True
-  deploy-repo: streamlink/streamlink.github.io
-  key-path: doctr_deploy_key.enc
-  require-master: True
+  deploy-repo: amurzeau/streamlink-docs
+  key-path: github_deploy_key_amurzeau_streamlink_docs.enc
